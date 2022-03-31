@@ -215,6 +215,7 @@ class SbyTask:
         self.used_options = set()
         self.engines = list()
         self.setup = dict()
+        self.stage = dict()
         self.script = list()
         self.files = dict()
         self.verbatim_files = dict()
@@ -590,6 +591,26 @@ class SbyTask:
                             self.error(f"sby file syntax error: {line}")
                         continue
 
+                    if entries[0] == "stage":
+                        mode = "stage"
+                        if len(entries) > 3 or len(entries) < 2:
+                            self.error(f"sby file syntax error: {line}")
+
+                        if len(entries) == 2:
+                            parent = None
+                        else:
+                            parent = entries[2]
+
+                        key = entries[1]
+
+                        if key in self.stage:
+                            self.error(f"stage {key} already defined")
+
+                        self.stage[key] = {
+                            'parent': parent
+                        }
+
+                        continue
 
                     if entries[0] == "script":
                         mode = "script"
@@ -646,7 +667,36 @@ class SbyTask:
                                 name = kvp[1][1:]
                                 self.setup['define'][name] = kvp[2:]
                         else:
-                            self.setup[key] = kvp[1:]
+                            self.setup[stmt] = kvp[1:]
+                    continue
+
+                if mode == "stage":
+                    self.error("[stage] section not yet supported")
+                    kvp = line.split()
+                    if key is None or key == '':
+                        self.error(f"sby file syntax error: in stage mode but unknown key")
+
+                    if len(kvp) == 0:
+                        continue
+
+                    if kvp[0] not in ("mode", "depth", "timeout", "expect", "engine",
+                                      "cutpoint", "enable", "disable", "assume", "skip",
+                                      "check", "prove", "abstract", "setsel") or len(kvp) < 2:
+                        self.error(f"sby file syntax error: {line}")
+                    else:
+                        stmt = kvp[0]
+                        if stmt == 'setsel':
+                            if len(kvp[1:]) < 2:
+                                self.error(f"sby file syntax error: {line}")
+                            elif kvp[1][0] != '@':
+                                self.error(f"sby file syntax error: {line}")
+                            else:
+                                name = kvp[1][1:]
+                                self.stage[key][stmt] = {
+                                    'name': name, 'pattern': kvp[2:]
+                                }
+                        else:
+                            self.stage[key][stmt] = kvp[1:]
                     continue
 
                 if mode == "script":
@@ -668,6 +718,11 @@ class SbyTask:
                     continue
 
                 self.error(f"sby file syntax error: {line}")
+
+        if len(self.stage) == 0:
+            self.stage['default'] = {
+                'enable', '*'
+            }
 
         self.handle_str_option("mode", None)
 
