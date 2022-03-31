@@ -214,6 +214,7 @@ class SbyTask:
         self.options = dict()
         self.used_options = set()
         self.engines = list()
+        self.setup = dict()
         self.script = list()
         self.files = dict()
         self.verbatim_files = dict()
@@ -583,6 +584,13 @@ class SbyTask:
                             self.error(f"sby file syntax error: {line}")
                         continue
 
+                    if entries[0] == "setup":
+                        mode = "setup"
+                        if len(self.setup) != 0 or len(entries) != 1:
+                            self.error(f"sby file syntax error: {line}")
+                        continue
+
+
                     if entries[0] == "script":
                         mode = "script"
                         if len(self.script) != 0 or len(entries) != 1:
@@ -617,6 +625,28 @@ class SbyTask:
                 if mode == "engines":
                     entries = line.split()
                     self.engines.append(entries)
+                    continue
+
+                if mode == "setup":
+                    self.error("[setup] section not yet supported")
+                    kvp = line.split()
+                    if kvp[0] not in ("cutpoint", "disable", "enable", "assume", "define"):
+                        self.error(f"sby file syntax error: {line}")
+                    else:
+                        stmt = kvp[0]
+                        if stmt == 'define':
+                            if 'define' not in self.setup:
+                                self.setup['define'] = {}
+
+                            if len(kvp[1:]) < 2:
+                                self.error(f"sby file syntax error: {line}")
+                            elif kvp[1][0] != '@':
+                                self.error(f"sby file syntax error: {line}")
+                            else:
+                                name = kvp[1][1:]
+                                self.setup['define'][name] = kvp[2:]
+                        else:
+                            self.setup[key] = kvp[1:]
                     continue
 
                 if mode == "script":
