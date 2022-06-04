@@ -465,6 +465,8 @@ class SbyTask(SbyConfig):
         if not os.path.isdir(f"{self.workdir}/model"):
             os.makedirs(f"{self.workdir}/model")
 
+        simcheck = " -simcheck" if self.opt_simcheck else ""
+
         def print_common_prep():
             if self.opt_multiclock:
                 print("clk2fflogic", file=f)
@@ -482,7 +484,7 @@ class SbyTask(SbyConfig):
             print("setundef -anyseq", file=f)
             print("opt -keepdc -fast", file=f)
             print("check", file=f)
-            print("hierarchy -simcheck", file=f)
+            print(f"hierarchy{simcheck}", file=f)
 
         if model_name == "base":
             with open(f"""{self.workdir}/model/design.ys""", "w") as f:
@@ -490,7 +492,7 @@ class SbyTask(SbyConfig):
                 for cmd in self.script:
                     print(cmd, file=f)
                 # the user must designate a top module in [script]
-                print("hierarchy -simcheck", file=f)
+                print(f"hierarchy{simcheck}", file=f)
                 print(f"""write_jny -no-connections ../model/design.json""", file=f)
                 print(f"""write_rtlil ../model/design.il""", file=f)
 
@@ -670,6 +672,8 @@ class SbyTask(SbyConfig):
         self.handle_str_option("smtc", None)
         self.handle_int_option("skip", None)
         self.handle_str_option("tbtop", None)
+
+        self.handle_bool_option("simcheck", True)
 
         if self.opt_smtc is not None:
             for engine in self.engines:
