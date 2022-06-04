@@ -1,0 +1,33 @@
+[options]
+mode bmc
+depth 1
+simcheck off
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal test.v
+prep -top top
+
+[file test.v]
+(* blackbox *)
+(* smtlib2_module *)
+module blackbox1(a, b);
+	input [7:0] a;
+	(* smtlib2_comb_expr = "(bvnot a)" *)
+	output [7:0] b;
+endmodule
+
+module top;
+	wire [7:0] a = $anyconst, b;
+
+	blackbox1 submod(
+		.a(a),
+		.b(b)
+	);
+
+	always @* begin
+		assert(~a == b);
+	end
+endmodule
